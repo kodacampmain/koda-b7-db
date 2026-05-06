@@ -37,10 +37,10 @@ CREATE TABLE books (
 -- VALUES (value_column1, value_column2, ...), (value_column1, value_column2, ...), ...
 
 INSERT INTO users (username, age, email) VALUES
-('ali', 30, 'ali@mail.com'), ('naufal', 30, 'naufal@mail.com');
+('bundo', 30, 'bundo@mail.com'), ('gado', 30, 'gado@mail.com');
 
 INSERT INTO users (username, age, email) VALUES
-('hanif', 50, 'hanif@mail.com');
+('Hanif', 50, 'Hanif@mail.com');
 
 table users;
 
