@@ -105,3 +105,192 @@ JOIN subjects su ON sc.subject_id = su.id
 WHERE su.name = 'Bhs. Indonesia';
 
 table scores;
+
+-- Mencari rerata siswa yg berada diatas rerata kumulatif
+
+SELECT AVG(score) AS rerata
+FROM scores;
+
+SELECT st.name, AVG(sc.score) AS "rerata nilai" 
+FROM scores sc
+JOIN students st ON st.id = sc.student_id
+GROUP BY st.name
+HAVING AVG(sc.score) > (
+    SELECT AVG(score) AS rerata
+    FROM scores
+)
+ORDER BY st.name ASC;
+
+SELECT d.id, count(m.id) AS total
+FROM movies m
+JOIN directors d ON m.director_id = d.id
+GROUP BY d.id;
+
+SELECT d.first_name, d.last_name, sq.total
+FROM (
+    SELECT director_id, count(id) AS total
+    FROM movies 
+    GROUP BY director_id
+) sq
+JOIN directors d ON sq.director_id = d.id;
+
+SELECT first_name, last_name
+FROM directors
+WHERE id IN (
+    SELECT d.id
+    FROM movies m
+    JOIN directors d ON m.director_id = d.id
+    GROUP BY d.id
+    HAVING count(m.id) > 5
+);
+
+SELECT su.name, sc.score 
+FROM scores sc
+JOIN subjects su ON sc.subject_id = su.id
+WHERE sc.score > 75;
+
+-- sales & product
+CREATE TABLE product_info (
+    product_id SERIAL PRIMARY KEY,
+    name VARCHAR,
+    category VARCHAR
+);
+CREATE TABLE sales_data (
+    sales_id SERIAL PRIMARY KEY,
+    product_id INT,
+    quantity INT,
+    unit_price INT,
+    FOREIGN KEY (product_id) REFERENCES product_info(product_id)
+);
+
+SELECT * FROM product_info;
+SELECT * FROM sales_data;
+
+SELECT 
+    p.name, 
+    p.category, 
+    sales_metrics.total_revenue, 
+    sales_metrics.num_sales 
+FROM product_info p 
+JOIN (
+    SELECT 
+        product_id, 
+        SUM(quantity * unit_price) AS total_revenue, 
+        COUNT(*) AS num_sales 
+    FROM sales_data 
+    GROUP BY product_id
+) AS sales_metrics 
+ON p.product_id = sales_metrics.product_id;
+
+SELECT 
+    pin.name,
+    pin.category, 
+    SUM(sd.quantity * sd.unit_price) AS total_revenue, 
+    COUNT(*) AS num_sales 
+FROM sales_data sd
+JOIN product_info pin ON sd.product_id = pin.product_id
+GROUP BY pin.name, pin.category;
+
+SELECT pin.name, pin.category, sd.unit_price
+FROM sales_data sd
+JOIN product_info pin ON sd.product_id = pin.product_id
+WHERE sd.unit_price = (
+    SELECT MAX(unit_price) FROM sales_data
+);
+
+-- HR DATA
+CREATE TABLE departments (
+	id SERIAL PRIMARY KEY,
+	department_name VARCHAR
+);
+CREATE TABLE employees (
+	id SERIAL PRIMARY KEY,
+	employee_name VARCHAR,
+	department_id INT,
+	salary INT,
+	FOREIGN KEY (department_id) REFERENCES departments(id)
+);
+
+SELECT * FROM departments;
+SELECT * FROM employees;
+-- cari employee dengan gaji diatas gaji rata-rata departemennya
+SELECT department_id, AVG(salary)
+FROM employees
+GROUP BY department_id;
+
+SELECT e1.id, e1.employee_name, e1.salary, e1.department_id
+FROM employees e1
+WHERE salary < (
+    SELECT AVG(e2.salary)
+    FROM employees e2
+    WHERE e1.department_id = e2.department_id
+);
+
+SELECT e.id, e.employee_name, e.salary, e.department_id
+FROM employees e
+JOIN ( 
+    SELECT department_id, AVG(salary) as avg_salary
+    FROM employees
+    GROUP BY department_id
+) recap ON e.salary > recap.avg_salary AND e.department_id = recap.department_id;
+
+SELECT 
+    id,
+    employee_name, 
+    salary,
+    (SELECT AVG(salary) FROM employees) AS average_salary
+FROM employees
+ORDER BY id ASC;
+
+SELECT 
+    e1.employee_name, 
+    e1.salary,
+    e2.average_salary
+FROM 
+    employees e1,
+    (SELECT AVG(salary) AS average_salary FROM employees) e2;
+
+-- product example
+SELECT product_name, price
+FROM products p1
+WHERE price > (
+    SELECT AVG(price) FROM products p2
+    WHERE p2.category = p1.category
+);
+
+-- transaction
+SELECT t1.customer_id, t1.amount
+FROM transactions t1
+WHERE amount > (
+    SELECT AVG(t2.amount)
+    FROM transactions t2
+    WHERE t2.customer_id = t1.customer_id
+);
+
+SELECT t1.customer_id, t1.amount
+FROM transactions t1
+JOIN (
+    SELECT t2.customer_id, AVG(t2.amount) as avg_amount
+    FROM transactions t2
+    GROUP BY t2.customer_id
+) recap ON t1.customer_id = recap.customer_id AND t1.amount > recap.avg_amount
+
+-- CTE sales
+CREATE TABLE sales (
+    product_id INT,
+    sales_amount INT
+);
+
+INSERT INTO sales (product_id, sales_amount)
+VALUES (1,100), (2, 200), (1, 300);
+
+SELECT * FROM sales;
+
+WITH recap AS (
+    SELECT product_id, SUM(sales_amount) AS total_amount
+    FROM sales
+    GROUP BY product_id
+)
+SELECT product_id, total_amount
+FROM recap
+WHERE total_amount = (SELECT MAX(total_amount) from recap);
